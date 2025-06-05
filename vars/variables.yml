@@ -1,8 +1,8 @@
 ---
 
 # Variables for ssh
-ssh_port:           "8888"
-local_user:         "artembaidikov"
+ssh_port:               "8888"
+local_user:             "artembaidikov"
 
 # Variables for user config
 vars_for_config_user:
@@ -11,9 +11,10 @@ vars_for_config_user:
   - { name: "tututu", groups: "tralala", shell: "/bin/zsh", password: "$6$rounds=656000$mysecretsalt$cNFVxXWfcxPgBi0FdmTj86YeCpclEj.iBRpkPG2L8x/MAWX2mezG7D36yDskUsNh3/qBjeHJMS.gUctO6H5Td.", password_live: "10" }
 
 # Variables for fail2ban conf
-path_for_logs:      "/var/log/auth.log"
-max_trys:           "3"
-ban_time:           "60"
+path_for_logs:          "/var/log/auth.log"
+max_trys:               "3"
+ban_time:               "60"
 
 # Variables for crypt
-user_for_crypt:     "tralala"
+passphrase_for_crypt:   "home"
+user_for_crypt:         "tralala"

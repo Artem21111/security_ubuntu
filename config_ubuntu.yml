@@ -16,6 +16,15 @@
         password_expire_account_disable:      "{{ item.password_live }}"
       loop:                                   "{{ vars_for_config_user }}"
 
+    - name: create ssh directory for users
+      file:
+        path:                                 /home/{{ item.name }}/.ssh
+        owner:                                "{{ item.name }}"
+        group:                                "{{ item.name }}"
+        mode:                                 700
+        state:                                directory
+      loop:                                   "{{ vars_for_config_user }}"
+
     - name: add ssh key to server
       copy:
         src:                                  /Users/{{ local_user }}/.ssh/id_ed25519.pub
@@ -133,47 +142,26 @@
         policy:                               default
         state:                                permissive
 
-# Install and crypt home directory ecryptfs
-    
-    - name: install ecryptfs
-      ansible.builtin.apt:
-        name: 
-          - ecryptfs-utils
-          - cryptsetup
-
-    - name: crypt home directory
-      command: ecryptfs-migrate-home -u "{{ user_for_crypt }}"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   handlers:
     - name: restart ssh
       service:
-        name:             ssh
-        state:            restarted
+        name:                                 ssh
+        state:                                restarted
     
     - name: Restart_service  
       ansible.builtin.systemd:    
-        name: fail2ban    
-        state: restarted
+        name:                                 fail2ban    
+        state:                                restarted
 
+# Install and config ecrypt 
+    - name: install ecrypt
+      apt:
+        name:
+          - cryptsetup
+          - ecryptfs-utils
+          - lsof
+          - rsync
+          - which
 
-
-
-
-
+    - name: create crypt directory for user
+      command: echo "{{ passphrase_for_crypt }}" | ecryptfs-migrate-home -u {{ user_for_crypt }}
