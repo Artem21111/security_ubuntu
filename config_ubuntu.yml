@@ -4,6 +4,10 @@
   vars_files:                                
     - ./vars/variables.yml
 
+  vars: 
+    appss_to_install: [
+
+    ]
   tasks:
 
 # Setup users
@@ -27,32 +31,25 @@
 
     - name: add ssh key to server
       copy:
-        src:                                  /Users/{{ local_user }}/.ssh/id_ed25519.pub
+        src:                                  /{{ users_path }}/{{ local_user }}/.ssh/id_ed25519.pub 
         dest:                                 /home/{{ item.name }}/.ssh/authorized_keys
       loop:                                   "{{ vars_for_config_user }}"
 
 # Configure ssh
     - name: configure sshd file
-      lineinfile:
-        path:                                 "/etc/ssh/sshd_config"
-        regex:                                "^(#)?{{item.key}}"
-        line:                                 "{{item.key}} {{item.value}}"
-        state:                                present
-      loop:
-        - { key: "PermitRootLogin", value: "no" }
-        - { key: "PasswordAuthentication", value: "no" } 
-        - { key: "Port", value: "{{ ssh_port }}"}
-        - { key: "PubkeyAuthentication", value: "yes"}
+      template:
+        src:                                  sshd_config.j2
+        dest:                                 /etc/ssh/sshd_config
       notify:
         - restart ssh
 
-    - name: save var
+    - name: save var # add more info, (perhaps move it to handlers)
       delegate_to:                            localhost
       lineinfile:
-        path:                                 "./inventory/hosts.yml"
+        path:                                 "/{{ path_to_inventory }}/inventory/hosts.yml" 
         regexp:                               '^(\s*)ansible_ssh_port:\s*\d+'
         line:                                 '\1ansible_ssh_port: {{ ssh_port }}'
-        backrefs: yes
+        backrefs:                             yes
         state:                                present
 
 # Install and configure fail2ban
@@ -91,14 +88,20 @@
  
     - name: Install iptables  
       ansible.builtin.apt:    
-        name:                                 iptables    
+        name:                                 [
+                                                'app1',
+                                                'ap2'
+                                              ]    
         state:                                present
-    
-    - name: delete older config
-      ansible.builtin.iptables:
-        chain:                                INPUT
-        flush:                                yes
 
+
+    
+    # - name: delete older config
+    #   ansible.builtin.iptables:
+    #     chain:                                INPUT
+    #     flush:                                yes
+
+   # To Learn
     - name: input only my ip
       ansible.builtin.iptables:
         chain:                                INPUT
@@ -142,26 +145,12 @@
         policy:                               default
         state:                                permissive
 
-  handlers:
-    - name: restart ssh
-      service:
-        name:                                 ssh
-        state:                                restarted
-    
-    - name: Restart_service  
-      ansible.builtin.systemd:    
-        name:                                 fail2ban    
-        state:                                restarted
 
-# Install and config ecrypt 
-    - name: install ecrypt
-      apt:
-        name:
-          - cryptsetup
-          - ecryptfs-utils
-          - lsof
-          - rsync
-          - which
+# users
+#intall app1
+#instal app2
+#install app3
 
-    - name: create crypt directory for user
-      command: echo "{{ passphrase_for_crypt }}" | ecryptfs-migrate-home -u {{ user_for_crypt }}
+
+#configuration
+#configuration

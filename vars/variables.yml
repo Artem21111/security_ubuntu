@@ -3,12 +3,24 @@
 # Variables for ssh
 ssh_port:               "8888"
 local_user:             "artembaidikov"
+users_path:             "Users"
+path_to_inventory:      "Users/artembaidikov/Downloads/security_ubuntu"
 
 # Variables for user config
 vars_for_config_user:
-  - { name: "artembaidikov", groups: "sudo", shell: "/bin/bash", password: "$6$rounds=656000$mysecretsalt$cNFVxXWfcxPgBi0FdmTj86YeCpclEj.iBRpkPG2L8x/MAWX2mezG7D36yDskUsNh3/qBjeHJMS.gUctO6H5Td.", password_live: "10" }
-  - { name: "tralala", groups: "artembaidikov", shell: "/bin/bash", password: "$6$rounds=656000$mysecretsalt$cNFVxXWfcxPgBi0FdmTj86YeCpclEj.iBRpkPG2L8x/MAWX2mezG7D36yDskUsNh3/qBjeHJMS.gUctO6H5Td.", password_live: "10" }
-  - { name: "tututu", groups: "tralala", shell: "/bin/zsh", password: "$6$rounds=656000$mysecretsalt$cNFVxXWfcxPgBi0FdmTj86YeCpclEj.iBRpkPG2L8x/MAWX2mezG7D36yDskUsNh3/qBjeHJMS.gUctO6H5Td.", password_live: "10" }
+  - { name: "artembaidikov",
+      groups: "sudo",
+      shell: "/bin/bash",
+      password: "$6$rounds=656000$mysecretsalt$cNFVxXWfcxPgBi0FdmTj86YeCpclEj.iBRpkPG2L8x/MAWX2mezG7D36yDskUsNh3/qBjeHJMS.gUctO6H5Td."
+      } 
+  - { name: "tralala", 
+      groups: "artembaidikov",
+      shell: "/bin/bash", 
+      password: "$6$rounds=656000$mysecretsalt$cNFVxXWfcxPgBi0FdmTj86YeCpclEj.iBRpkPG2L8x/MAWX2mezG7D36yDskUsNh3/qBjeHJMS.gUctO6H5Td." }
+  - { name: "tututu", 
+      groups: "tralala", 
+      shell: "/bin/zsh", 
+      password: "$6$rounds=656000$mysecretsalt$cNFVxXWfcxPgBi0FdmTj86YeCpclEj.iBRpkPG2L8x/MAWX2mezG7D36yDskUsNh3/qBjeHJMS.gUctO6H5Td." }
 
 # Variables for fail2ban conf
 path_for_logs:          "/var/log/auth.log"
