@@ -1,0 +1,167 @@
+--- 
+- hosts: web_servers
+  become: true
+  vars_files:                                
+    - ./vars/variables.yml
+
+  tasks:
+
+# Setup users
+    - name: password for default user
+      user:
+        name:                                 "{{ item.name }}"  
+        groups:                               "{{ item.groups }}"      
+        shell:                                "{{ item.shell }}"
+        password:                             '{{ item.password }}'
+        password_expire_account_disable:      "{{ item.password_live }}"
+      loop:                                   "{{ vars_for_config_user }}"
+
+    - name: add ssh key to server
+      copy:
+        src:                                  /Users/{{ local_user }}/.ssh/id_ed25519.pub
+        dest:                                 /home/{{ item.name }}/.ssh/authorized_keys
+      loop:                                   "{{ vars_for_config_user }}"
+
+# Configure ssh
+    - name: configure sshd file
+      lineinfile:
+        path:                                 "/etc/ssh/sshd_config"
+        regex:                                "^(#)?{{item.key}}"
+        line:                                 "{{item.key}} {{item.value}}"
+        state:                                present
+      loop:
+        - { key: "PermitRootLogin", value: "no" }
+        - { key: "PasswordAuthentication", value: "no" } 
+        - { key: "Port", value: "{{ ssh_port }}"}
+        - { key: "PubkeyAuthentication", value: "yes"}
+      notify:
+        - restart ssh
+
+    - name: save var
+      delegate_to:                            localhost
+      lineinfile:
+        path:                                 "./inventory/hosts.yml"
+        regexp:                               '^(\s*)ansible_ssh_port:\s*\d+'
+        line:                                 '\1ansible_ssh_port: {{ ssh_port }}'
+        backrefs: yes
+        state:                                present
+
+# Install and configure fail2ban
+    - name: Update_apt_cache  
+      ansible.builtin.apt:    
+        update_cache:                         yes
+
+    - name: Install Fail2Ban  
+      ansible.builtin.apt:    
+       name:                                  fail2ban    
+       state:                                 present
+
+    - name: Restart sshd service to apply changes  
+      ansible.builtin.systemd:    
+        name:                                 ssh    
+        state:                                restarted
+
+    - name: config fail2ban
+      include_role:
+        name:                                 Oefenweb.fail2ban 
+      vars:
+        fail2ban_services:
+          - name:                             sshd
+            port:                             "{{ ssh_port }}"
+            logpath:                          "{{ path_for_logs }}"
+            maxretry:                         "{{ max_trys }}"
+            bantime:                          "{{ ban_time }}"
+
+    - name: Start and autostart fail2ban  
+      ansible.builtin.service:    
+        name:                                 fail2ban    
+        state:                                restarted    
+        enabled:                              true
+        
+ # Install and config iptables
+ 
+    - name: Install iptables  
+      ansible.builtin.apt:    
+        name:                                 iptables    
+        state:                                present
+    
+    - name: delete older config
+      ansible.builtin.iptables:
+        chain:                                INPUT
+        flush:                                yes
+
+    - name: input only my ip
+      ansible.builtin.iptables:
+        chain:                                INPUT
+        protocol:                             tcp
+        source:                               217.77.221.128
+        destination_port:                     "{{ ssh_port }}"
+        jump:                                 ACCEPT
+
+    - name: input only my ip
+      ansible.builtin.iptables:
+        chain:                                INPUT
+        protocol:                             tcp
+        source:                               46.133.168.40
+        destination_port:                     "{{ ssh_port }}"
+        jump:                                 ACCEPT
+         
+    - name: block other ip
+      ansible.builtin.iptables:
+        chain:                                INPUT
+        protocol:                             tcp
+        destination_port:                     "{{ ssh_port }}"
+        jump:                                 DROP
+      
+    - name: block icmp
+      ansible.builtin.iptables:
+        chain:                                INPUT
+        protocol:                             icmp
+        jump:                                 DROP
+
+# Install and config selinux
+    - name: install selinux and utils
+      ansible.builtin.apt:
+        name:
+          - policycoreutils
+          - selinux-utils
+          - selinux-basics
+        state:                                present
+
+    - name: configure selinux
+      ansible.posix.selinux:
+        policy:                               
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  handlers:
+    - name: restart ssh
+      service:
+        name:             ssh
+        state:            restarted
+    
+    - name: Restart_service  
+      ansible.builtin.systemd:    
+        name: fail2ban    
+        state: restarted
+
+
+
+
+
+
