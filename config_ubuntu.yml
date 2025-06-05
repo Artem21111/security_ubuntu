@@ -130,7 +130,19 @@
 
     - name: configure selinux
       ansible.posix.selinux:
-        policy:                               
+        policy:                               default
+        state:                                permissive
+
+# Install and crypt home directory ecryptfs
+    
+    - name: install ecryptfs
+      ansible.builtin.apt:
+        name: 
+          - ecryptfs-utils
+          - cryptsetup
+
+    - name: crypt home directory
+      command: ecryptfs-migrate-home -u "{{ user_for_crypt }}"
 
 
 

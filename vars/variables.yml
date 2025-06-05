@@ -14,3 +14,6 @@ vars_for_config_user:
 path_for_logs:      "/var/log/auth.log"
 max_trys:           "3"
 ban_time:           "60"
+
+# Variables for crypt
+user_for_crypt:     "tralala"
