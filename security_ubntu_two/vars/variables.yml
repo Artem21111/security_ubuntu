@@ -1,7 +1,7 @@
 ---
 
 # Variables for ssh
-ssh_port:               "8888"
+ssh_port:               "6666"
 local_user:             "artembaidikov"
 users_path:             "Users"
 path_to_inventory:      "Users/artembaidikov/Downloads/security_ubntu"

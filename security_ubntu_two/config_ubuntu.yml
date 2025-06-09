@@ -48,7 +48,7 @@
         mode:                                 '700'
       loop:                                   "{{ vars_for_config_user }}"
 
-# Check ssh port
+# Check actuali ssh port
     - name: check ssh port
       slurp:
         src:                                  /etc/ssh/sshd_config
@@ -67,6 +67,35 @@
       debug:
         msg:                                  "{{ find_port }}"
 
+# Check ssh port before change
+    - name:                                   Start nc server on port
+      command:                                nc -lv {{ ssh_port }} 
+      register:                               check_port_change
+      async:                                  90
+      poll:                                   0
+
+    - name: check nc job
+      async_status:
+        jid:                                  "{{ check_port_change.ansible_job_id }}"
+      register:                               nc_job_status
+      ignore_errors:                          true
+
+    - name: message if port is already used 
+      debug:
+        msg:                                  "This port is already used!"
+      when:                                   nc_job_status is search('in use')
+
+    - name: nmap try this port 
+      delegate_to:                            localhost
+      command:                                nmap {{ ansible_host }} -p {{ ssh_port }}
+      register:                               nmap_result
+      when:                                   nc_job_status.started == 1
+
+    - name: kill nc proccess
+      command:                                pkill -f "nc -lv {{ ssh_port }}"
+      when:                                   nc_job_status.finished == 0
+      register:                               kill_result
+
 # Configure ssh
     - name: configure sshd file
       template:
@@ -75,12 +104,18 @@
       notify:
         - restart ssh
         - add port to inventory file
+      when:                                   
+        - nmap_result is search('open') 
+        - kill_result.rc == 0
 
 # Install and configure fail2ban
     - name: Restart sshd service to apply changes  
       ansible.builtin.systemd:    
         name:                                 ssh    
         state:                                restarted
+      when:                                   
+        - nmap_result is search('open') 
+        - kill_result.rc == 0
 
     - name: config fail2ban
       include_role:
@@ -151,11 +186,6 @@
 #    - name: reboot OS to run config
 #      ansible.builtin.reboot:
 #        msg: "Rebooting machine in 5 seconds"
-
-# Install siem (Suricata)
-    - name: install siem
-      include_role:
-        name: ansible-Suricata
 
   handlers:
     - name: restart ssh
