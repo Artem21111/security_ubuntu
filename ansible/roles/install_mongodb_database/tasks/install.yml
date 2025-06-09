@@ -1,0 +1,26 @@
+# Install MongoDb, configure mongodb
+- name: GPG keys for mongo # Add gpg key
+  ansible.builtin.apt_key: 
+    url:                            https://www.mongodb.org/static/pgp/server-{{ version }}.asc
+    state:                          present
+
+- name: repository for mongo
+  ansible.builtin.apt_repository:
+    repo:                           deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu {{ type_of_system }}/mongodb-org/{{ version }} multiverse
+    state:                          present
+    filename:                       mongodb-org-{{ version }}
+
+- name: install mongodb
+  ansible.builtin.apt:
+    name:                           mongodb-org
+    state:                          present
+
+- name: install pip
+  apt:
+    name:                           python3-pip
+    state:                          present
+
+- name: install pymongo
+  ansible.builtin.pip:
+    name:                           pymongo
+    break_system_packages:          true

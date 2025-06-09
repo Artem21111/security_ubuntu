@@ -1,0 +1,47 @@
+---
+
+#Variables for mongo 
+mongo_password:                  "14092004"
+mongo_username:                  "user"
+mongo_ports:                     "27017"
+
+# Variables for postgres 
+postgres_ports:                  "5432"
+postgres_db:                     "test"
+postgres_data:                   "/var/lib/postgres/userdata/"
+postgres_password:               14092004
+postgres_username:               "user"
+
+# Variables for mysql
+mysql_ports:                     "3306"
+mysql_database:                  "test"
+mysql_password:                  "14092004"
+mysql_username:                  "user"
+mysql_root_password:             "14092004"
+
+# Variables for redis 
+redis_password:                  "14092004"
+redis_username:                  "14092004"
+redis_ports:                     "6379"
+
+# Variable for cron role
+cron_minute:                     "*/5"
+cron_hour:                       "0"
+
+# Variable for backup script
+app_name:                        "bash_chrome"
+digitalocean_bucket_name:        "sbktest"
+how_match_backup_save:           "0"
+container_name:                  "redis_bash_chrome"
+db_type:                         "redis"
+backup_path:                     "/data_backup/Backup_redis/"
+password:                        "14092004"
+username:                        "user"
+
+# Credits for s3cmd configure in role preparation_for_script
+digitalocean_access_key:         "DO801L6LM4DKJ6K3BY2P"
+digitalocean_secret_key:         "rGVd4u+4DjmmCqtYysPiS1Qtn91erb1kLUi9Dm261Vs"
+
+# Variables for preparation_for_script role
+path_for_s3cmd_config:           "/root/"
+path_for_backup_script:          "/usr/local/bin/"

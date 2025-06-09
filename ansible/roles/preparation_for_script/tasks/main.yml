@@ -1,0 +1,44 @@
+---
+
+# Install s3cmd 
+- name: Install s3cmd
+  ansible.builtin.apt:
+    name:
+      - s3cmd
+    state: present
+
+# Download configure for s3cmd from tamplates
+- name: Configure s3cmd
+  template:
+    src:                                .s3cfg.j2
+    dest:                               "{{ path_for_s3cmd_config }}.s3cfg"
+
+# Copy script from "files" to host
+- name: Copy backup script
+  copy:
+    src:                                backup_database.sh
+    dest:                               "{{ path_for_backup_script }}"
+
+# Become script to execution rights
+- name: Chmod backup
+  ansible.builtin.file:
+    path:                               "{{ path_for_backup_script }}backup_database.sh"
+    mode:                               '700'
+
+# Start cron task for one database
+- name: Start cron digital_ocean
+  template:
+    src:                                cron.j2
+    dest:                               /var/spool/cron/crontabs/{{ cron_for_user }} 
+
+
+
+
+
+#  cron:
+#    name:                               backup_database
+#    minute:                             "{{ cron_minute }}"
+#    hour:                               "{{ cron_hour }}"
+#    job:                                "{{ path_for_backup_script }}backup_database.sh -s {{ app_name }} -q {{ db_type }} -p {{ backup_path }} --password {{ password }} --username {{ username }} -n {{ digitalocean_bucket_name }} -d {{ how_match_backup_save }}"
+
+

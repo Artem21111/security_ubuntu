@@ -1,0 +1,12 @@
+---
+
+- name: install postgres and pip
+  import_tasks:                 install_postgresql.yml
+
+- name: config postgresql
+  import_tasks:                 configure_postgresql.yml
+
+- name: configure_users.yml
+  import_tasks:                 configure_users.yml
+
+ 

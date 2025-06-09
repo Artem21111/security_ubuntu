@@ -1,0 +1,30 @@
+- name: "Make sure work directory is exists"
+  file:                             
+    path:                       /{{ data_path }}/
+    state:                      directory 
+    owner:                      root 
+    group:                      root 
+    mode:                       0777 
+  when:                         data_path is defined
+
+- name: configure mongo
+  template:
+    src:                        mongod.conf.j2
+    dest:                       /etc/mongod.conf
+  vars:
+    authorization:              "enabled"
+  notify:                       start mongodb
+
+- name: check mongodb data
+  stat:
+    path:                        /var/lib/mongodb
+  register:                      mongodb_dir
+  when:                          data_path is defined
+
+- name: move mongo data
+  command:                        mv /var/lib/mongodb /{{ data_path }}/
+  notify:                         restart mongodb
+  when:                             
+    - data_path is defined
+    - mongodb_dir.stat.exists
+    - mongodb_dir.stat.isdir

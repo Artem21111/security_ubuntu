@@ -1,0 +1,7 @@
+---
+
+- name: install redis
+  import_tasks:               install_redis.yml
+
+- name: config redis
+  import_tasks:               configure_redis.yml

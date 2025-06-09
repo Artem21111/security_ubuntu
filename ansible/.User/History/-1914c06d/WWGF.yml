@@ -1,0 +1,66 @@
+---
+- hosts: web_servers
+  become: true
+  vars_files:
+    - ./vars/variables.yml
+
+  pre_tasks:
+    - name: Install Nginx in Ubuntu
+      ansible.builtin.apt:
+        name:
+          - nginx
+        state: present
+
+    - name: Preparation before install
+      ansible.builtin.include_role:
+        name: preparation_for_script
+
+  tasks:
+
+    - name: GPG keys for mongo
+      ansible.builtin.apt_key:
+        url: https://www.mongodb.org/static/pgp/server-8.0.asc
+        state: present
+
+    - name: repository for mongo
+      ansible.builtin.apt_repository:
+        repo: deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse
+        state: present
+        filename: mongodb-org-8.0
+
+    - name: install mongodb
+      ansible.builtin.apt:
+        name: mongodb-org
+        state: present
+
+    - name: start mongodb
+      service:
+        name: mongod
+        enabled: yes
+        state: started
+    
+    - name: install pip
+      apt:
+        name: python3-pip
+        state: present
+
+    - name: install pymongo
+      shell: pip3 install pymongo --break-system-packages
+
+    - name: Включить авторизацию в MongoDB
+      blockinfile:
+       path: /etc/mongod.conf
+       block: |
+         security:
+         authorization: enabled
+       marker: ""
+
+    - name: create user mongodb
+      community.mongodb.mongodb_user:
+        login_host: localhost
+        login_port: "{{ mongo_ports }}"
+        name: "{{ username }}"
+        password: "{{ password }}"
+        roles: ["root"]
+        database: admin
+        state: present

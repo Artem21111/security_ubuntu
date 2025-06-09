@@ -1,0 +1,4 @@
+# Install redis, configure redis
+
+- name: ensure packages installed
+  apt:                        pkg=redis-server state=present

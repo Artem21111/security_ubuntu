@@ -1,0 +1,22 @@
+---
+
+# Credits for s3cmd configure in role preparation_for_script
+digitalocean_access_key:         "DO801L6LM4DKJ6K3BY2P"
+digitalocean_secret_key:         "rGVd4u+4DjmmCqtYysPiS1Qtn91erb1kLUi9Dm261Vs"
+digitalocean_bucket_name:        "sbktest"
+digitalocean_host_base:          "fra1.digitaloceanspaces.com"
+digitalocean_host_bucket:        "%(bucket)s.fra1.digitaloceanspaces.com"
+
+# Variables for preparation_for_script role
+path_for_s3cmd_configure:        "/root/"
+path_for_backup_script:          "/usr/local/bin/"
+
+# Variable for backup script
+app_name:                        "bash_chrome"
+how_match_backup_save:           "1"
+db_type:                         "mongo"
+backup_path:                     "/data_backup/Backup_mongo/"
+password:                        "14092004"
+username:                        "user"
+cron_minute:                     "*/1"
+cron_hour:                       "0"

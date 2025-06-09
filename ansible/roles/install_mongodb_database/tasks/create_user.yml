@@ -1,0 +1,41 @@
+#- name: check authorization configuration
+#  slurp:
+#    src: /etc/mongod.conf
+#  register: mongod_conf
+
+#- name: check string with authorization
+#  set_fact:
+#    authorization_enabled: "{{ mongod_conf.content | b64decode is search('authorization:\\s*enabled') }}"
+
+- name: create first admin user mongodb
+  community.mongodb.mongodb_user:
+    login_host:                     "{{ login_host }}"
+    login_port:                     "{{ mongo_ports }}"
+    name:                           "{{ username_mongodb }}"
+    password:                       "{{ password_mongodb }}"
+    roles:                          "root"
+    database:                       admin
+  register:                         add_user_result
+  ignore_errors:                    true
+#  when:                             not authorization_enabled
+
+- name: create user mongodb with authorization
+  community.mongodb.mongodb_user:
+    login_host:                     "{{ login_host }}"
+    login_port:                     "{{ mongo_ports }}"
+    login_user:                     "{{ mongodb_root_user }}"
+    login_password:                 "{{ mongodb_root_password }}"
+    name:                           "{{ username_mongodb }}"
+    password:                       "{{ password_mongodb }}"
+    roles:                          "{{ user_role }}"
+    database:                       admin
+    state:                          present
+  when:                             add_user_result.failed # authorization_enabled 
+
+#- name: Включение авторизации в mongod.conf
+#  replace:
+#    path:                           /etc/mongod.conf
+#    regexp:                         '^#? *security:.*'
+#    replace:                        "security:\n  authorization: enabled"
+#  notify:                           Restart MongoDB
+#  when:                             not authorization_enabled   

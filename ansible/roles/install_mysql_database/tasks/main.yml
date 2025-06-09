@@ -1,0 +1,14 @@
+---
+
+- name: install mysql and other utils
+  import_tasks:                      install_mysql_utils.yml
+
+- name: config mysql
+  import_tasks:                      configure_mysql.yml
+
+- name: config apparmor
+  import_tasks:                      configure_apparmor.yml
+    
+- name: create user and database
+  import_tasks:                      create_user.yml
+

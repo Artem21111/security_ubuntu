@@ -1,0 +1,12 @@
+# Install mysql
+- name: install mysql and other utils
+  apt:                                "name={{ item }} state=present"
+  with_items:
+    - mysql-server
+    - pip
+    - apparmor-utils
+
+- name: install pymysql
+  ansible.builtin.pip:
+    name:                           pymysql
+    break_system_packages:          true

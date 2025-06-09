@@ -1,0 +1,15 @@
+# Install postgresql
+- name: "Install packages"
+  apt:                          "name={{ item }} state=present"
+  with_items:
+    - postgresql
+
+- name: install pip
+  apt:
+    name:                       python3-pip
+    state:                      present
+
+- name: install psycopg2-binary
+  ansible.builtin.pip:
+    name:                           psycopg2-binary
+    break_system_packages:          true

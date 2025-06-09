@@ -1,0 +1,15 @@
+- name: create admin user 
+  community.mysql.mysql_user:
+    name:                           "{{ username }}"
+    password:                       "{{ password }}"
+    host:                           "%"
+    priv:                           "*.*:ALL,GRANT"
+    state:                          present
+    login_unix_socket:              /var/run/mysqld/mysqld.sock
+
+- name: create a new database
+  mysql_db:
+    name:                           "{{ db_name }}"
+    state:                          present
+    login_user:                     "{{ username }}"
+    login_password:                 "{{ password }}"

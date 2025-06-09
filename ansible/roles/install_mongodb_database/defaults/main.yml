@@ -1,0 +1,16 @@
+---
+
+version:                      "8.0"
+type_of_system:               "noble"
+login_host:                   "localhost"
+db_path:                      "/bash_chrome/mongodb"
+mongo_ports:                  "27017"
+bind_ip:                      "127.0.0.1"
+authorization:                ""
+username_mongodb:             "userforread"
+password_mongodb:             "14092004"
+mongodb_root_user:            "user"
+mongodb_root_password:        "14092004"
+user_role:                    "read"
+#mongodb_root_password:        "14092004"
+#mongodb_root_user:            "user"

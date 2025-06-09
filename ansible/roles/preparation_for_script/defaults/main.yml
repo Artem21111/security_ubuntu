@@ -1,0 +1,21 @@
+---
+
+# Credits for s3cmd configure in role preparation_for_script
+digitalocean_access_key:         "DO801L6LM4DKJ6K3BY2P"
+digitalocean_secret_key:         "rGVd4u+4DjmmCqtYysPiS1Qtn91erb1kLUi9Dm261Vs"
+digitalocean_bucket_name:        "sbktest"
+digitalocean_host_base:          "fra1.digitaloceanspaces.com"
+digitalocean_host_bucket:        "%(bucket)s.fra1.digitaloceanspaces.com"
+
+# Variables for preparation_for_script role
+path_for_s3cmd_configure:        "/root/"
+path_for_backup_script:          "/usr/local/bin/"
+
+# Variable for backup script and cron
+script_and_cron:
+  - { app_name: "bash_chrome", how_match_backup_save: "1", db_type: "mongo", backup_path: "/data_backup/Backup_mongo/", password: "14092004", username: "user", cron_minute: "*/1", digitalocean_bucket_name: "sbktest", host_for_backup: "127.0.0.1" }
+  - { app_name: "bash_chrome", how_match_backup_save: "1", db_type: "mysql", backup_path: "/data_backup/Backup_mysql/", password: "14092004", username: "user", cron_minute: "*/1", digitalocean_bucket_name: "sbktest", host_for_backup: "127.0.0.1" }
+  - { app_name: "bash_chrome", how_match_backup_save: "1", db_type: "postgresql", backup_path: "/data_backup/Backup_postgresql/", password: "14092004", username: "user", cron_minute: "*/1", digitalocean_bucket_name: "sbktest", host_for_backup: "127.0.0.1" }
+  - { app_name: "bash_chrome", how_match_backup_save: "1", db_type: "redis", backup_path: "/bash_chrome/redis", password: "14092004", username: "user", cron_minute: "*/1", digitalocean_bucket_name: "sbktest", host_for_backup: "127.0.0.1" }
+
+cron_for_user:                   "root"

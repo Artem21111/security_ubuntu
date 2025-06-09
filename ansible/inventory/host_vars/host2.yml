@@ -1,0 +1,6 @@
+---
+
+ansible_connection: ssh
+ansible_ssh_user: ubuntu
+ansible_ssh_por: =22
+ansible_ssh_private_key_file: "{{ pemfile | d('~/bash_chrome/home/artembaidikov/bash_chrome/.github/workflows/ansible/files/nginx.pem') }}"

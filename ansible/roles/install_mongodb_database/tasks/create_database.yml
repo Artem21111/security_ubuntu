@@ -1,0 +1,15 @@
+- name: create collection
+  community.mongodb.mongodb_shell:
+    login_user:                         "{{ mongodb_root_user }}"
+    login_password:                     "{{ mongodb_root_password }}"
+    eval:                               "db.createCollection('mycollection')"
+    stringify:                          yes
+    db:                                 "mynewdb"
+
+- name: insert data in colection
+  community.mongodb.mongodb_shell:
+    login_user:                         "{{ mongodb_root_user }}"
+    login_password:                     "{{ mongodb_root_password }}"
+    eval:                               "db.mycollection.insert({'name':'tytytyty', 'pupupu': 'tralala'})"
+    stringify:                          yes
+    db:                                 "mynewdb"

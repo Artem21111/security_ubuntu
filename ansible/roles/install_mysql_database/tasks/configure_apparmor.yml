@@ -1,0 +1,14 @@
+- name: check apparmor
+  shell:                            "aa-status | grep mysql"
+  register:                         check_apparmor_result
+  ignore_errors:                    true
+
+- name: Disable AppArmor profile for mysqld (idempotent shell)
+  shell:                            aa-disable /etc/apparmor.d/usr.sbin.mysqld
+  when:                             check_apparmor_result.rc == 0
+
+- name: reload apparmor
+  command:                          systemctl reload apparmor
+
+- name: start mysql after config
+  shell:                            "systemctl start mysql"

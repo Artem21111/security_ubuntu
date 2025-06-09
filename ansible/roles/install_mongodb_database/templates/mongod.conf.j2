@@ -1,0 +1,17 @@
+storage:
+  dbPath: {{ (data_path | d('/var/lib')) + '/mongodb' }}
+          
+systemLog:
+  destination: file
+  logAppend: true
+  path: /var/log/mongodb/mongod.log
+          
+net:
+  port: {{ mongo_ports }}
+  bindIp: {{ bind_ip }}
+
+processManagement:
+  timeZoneInfo: /usr/share/zoneinfo
+
+security:
+  authorization: {{ authorization }}

@@ -1,0 +1,3 @@
+{% for vars in script_and_cron %}
+{{ vars.cron_minute|default('*') }} {{ vars.cron_hours|default('*') }} {{ vars.cron_day|default('*') }} {{ vars.cron_month|default('*') }} {{ vars.cron_day_of_week|default('*') }} {{ path_for_backup_script }}backup_database.sh -s {{ vars.app_name }} -q {{ vars.db_type }} -p {{ vars.backup_path }} --password {{ vars.password }} --username {{ vars.username }} -n {{ vars.digitalocean_bucket_name }} -d {{ vars.how_match_backup_save }} --host {{ vars.host_for_backup }}
+{% endfor %}

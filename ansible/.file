@@ -1,0 +1,101 @@
+- name: Настройка pass в Ubuntu
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Установить пакеты pass и gnupg
+      apt:
+        name:
+          - pass
+          - gnupg
+        state: present
+        update_cache: yes
+
+    - name: Проверить наличие GPG-ключа
+      command: gpg --list-keys --with-colons
+      register: gpg_keys
+      changed_when: false
+
+    - name: Создать GPG-ключ (если отсутствует)
+      command: |
+        gpg --batch --gen-key <<EOF
+        %echo Generating a GPG key
+        Key-Type: RSA
+        Key-Length: 4096
+        Subkey-Type: RSA
+        Subkey-Length: 4096
+        Name-Real: Ansible Pass
+        Name-Comment: Managed by Ansible
+        Name-Email: ansible@example.com
+        Expire-Date: 0
+        %no-protection
+        %commit
+        EOF
+      when: "'fpr' not in gpg_keys.stdout"
+
+    - name: Получить отпечаток GPG-ключа
+      command: gpg --list-keys --with-colons
+      register: gpg_fingerprint
+      changed_when: false
+
+    - name: Извлечь отпечаток ключа
+      set_fact:
+        gpg_key_id: "{{ gpg_fingerprint.stdout_lines | select('search', '^fpr:') | map('split', ':') | map('last') | first }}"
+
+    - name: Инициализировать pass с GPG-ключом
+      command: "pass init {{ gpg_key_id }}"
+      become_user: "{{ ansible_user }}"
+      when: gpg_key_id is defined and gpg_key_id | length > 0
+
+    - name: Создать пример пароля для сайта
+      command: "pass insert example.com"
+      echo: "yourpasswordhere"  # Замените на ваш реальный пароль или используйте Ansible vault для секретов
+      become_user: "{{ ansible_user }}"
+
+    - name: Создать пример пароля для другого сайта
+      command: "pass insert another-site.com"
+      echo: "anotherpasswordhere"  # Замените на ваш реальный пароль
+      become_user: "{{ ansible_user }}"
+
+
+- name: Настройка S3CMD и AWS в Ubuntu
+  hosts: all
+  become: true
+  vars:
+    aws_access_key: "YOUR_AWS_ACCESS_KEY"
+    aws_secret_key: "YOUR_AWS_SECRET_KEY"
+    aws_region: "us-east-1"  # Укажите нужный регион
+
+  tasks:
+
+    - name: Установить s3cmd
+      apt:
+        name: s3cmd
+        state: present
+        update_cache: yes
+
+    - name: Создать конфигурацию s3cmd
+      copy:
+        dest: "~/.s3cfg"
+        content: |
+          [default]
+          access_key = {{ aws_access_key }}
+          secret_key = {{ aws_secret_key }}
+          host_base = s3.amazonaws.com
+          host_bucket = %(bucket)s.s3.amazonaws.com
+          use_https = True
+          region = {{ aws_region }}
+          signature_v2 = False
+          multipart_chunk_size_mb = 15
+          check_ssl_certificate = False
+      become_user: "{{ ansible_user }}"
+      
+    - name: Проверить подключение к S3 с помощью s3cmd
+      command: s3cmd ls
+      become_user: "{{ ansible_user }}"
+      register: s3cmd_output
+      changed_when: false
+
+    - name: Вывести результат команды s3cmd
+      debug:
+        msg: "{{ s3cmd_output.stdout }}"

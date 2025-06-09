@@ -1,0 +1,35 @@
+- name: "Make sure work directory is exists"
+  file:                             
+    path:                             /{{ data_path }}/
+    state:                            directory 
+    owner:                            root 
+    group:                            root 
+    mode:                             0777 
+  when:                             data_path is defined
+
+- name: stop mysql for configure
+  shell:                              "systemctl stop mysql"
+
+- name: Change work directory
+  ansible.builtin.lineinfile:
+    path:                           /etc/mysql/mysql.conf.d/mysqld.cnf
+    regexp:                         "^# datadir *= *'/var/lib/mysql'"
+    line:                           "datadir=/{{ data_path }}/mysql"
+  when:                             data_path is defined
+
+- name: check mysql data
+  stat:
+    path:                           /var/lib/mysql
+  register:                         mysql_dir
+  when:                             data_path is defined
+
+- name: move mysql data
+  command:                            mv /var/lib/mysql /{{ data_path }}/
+  when:
+    - data_path is defined                             
+    - mysql_dir.stat.exists
+    - mysql_dir.stat.isdir 
+
+- name: change mysql data dir owner and group
+  shell:                            "chown -R mysql:mysql /{{ data_path }}/mysql"
+  when:                             data_path is defined

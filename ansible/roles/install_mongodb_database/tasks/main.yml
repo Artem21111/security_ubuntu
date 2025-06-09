@@ -1,0 +1,17 @@
+---
+
+- name: insall mongo, pip, pymongo
+  import_tasks: install.yml
+
+- name: create user 
+  import_tasks: create_user.yml
+
+- name: config mongo data
+  import_tasks: configuration.yml
+  notify:       restart mongodb
+
+- name: work with databases
+  import_tasks:  create_database.yml
+
+# 1) add users with roles
+# 2) create database

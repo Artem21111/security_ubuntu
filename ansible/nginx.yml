@@ -1,0 +1,254 @@
+---
+- hosts: web_servers
+  become: true
+  vars_files:                               ./vars/variables.yml
+
+  pre_tasks:
+    - name: Install Nginx in Ubuntu
+      ansible.builtin.apt:
+        name:                               nginx
+        state:                              present
+
+    - name: Preparation before install
+      ansible.builtin.include_role:
+        name:                               preparation_for_script
+
+  tasks:
+
+# Include roles for install databases
+    - name: install mongodb
+      ansible.builtin.include_role:
+        name:                               install_mongodb_database
+
+  #  - name: install postgresql
+   #   ansible.builtin.include_role:
+    #    name:                               install_postgresql_database
+
+   # - name: install redis
+  #    ansible.builtin.include_role:
+   #     name:                               install_redis_database
+
+ #   - name: install mysql
+   #   ansible.builtin.include_role:
+  #      name:                              install_mysql_database
+#
+# Install MongoDb, configure mongodb
+#    - name: GPG keys for mongo # Add gpg key
+#      ansible.builtin.apt_key: 
+#        url: https://www.mongodb.org/static/pgp/server-8.0.asc
+#        state: present
+#
+#    - name: repository for mongo
+#      ansible.builtin.apt_repository:
+#        repo: deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse
+#        state: present
+#        filename: mongodb-org-8.0
+#
+#    - name: install mongodb
+#      ansible.builtin.apt:
+#        name: mongodb-org
+#        state: present
+#
+#    - name: start mongodb
+#      service:
+#        name: mongod
+#        enabled: yes
+#        state: started
+#    
+#    - name: install pip
+#      apt:
+#        name: python3-pip
+#        state: present
+#
+#    - name: install pymongo
+#      shell: pip3 install pymongo --break-system-packages
+#
+#    - name: create user mongodb
+#      community.mongodb.mongodb_user:
+#        login_host: localhost
+#        login_port: "{{ mongo_ports }}"
+#        name: "{{ username }}"
+#        password: "{{ password }}"
+#        roles: ["root"]
+#        database: admin
+#        state: present
+#    
+#    - name: configure mongodb
+#      copy:
+#        dest: /etc/mongod.conf
+#        content: |
+#          storage:
+#            dbPath: /var/lib/mongodb
+#          
+#          systemLog:
+#            destination: file
+#            logAppend: true
+#            path: /var/log/mongodb/mongod.log
+#          
+#          net:
+#            port: 27017
+#            bindIp: 127.0.0.1
+#
+#          processManagement:
+#            timeZoneInfo: /usr/share/zoneinfo
+#
+#          security:
+#            authorization: enabled
+#        owner: root
+#        group: root
+#        mode: '0644'
+#    
+#    - name: restart mongodb
+#      service:
+#        name: mongod
+#        state: restarted
+
+# Install redis, configure redis
+#
+#    - name: ensure packages installed
+#      apt: pkg={{ item }} state=latest
+#      with_items:
+#        - make
+#        - build-essential
+#
+#    - name: download latest stable redis
+#      get_url: url=http://download.redis.io/redis-stable.tar.gz dest=/tmp/redis-stable.tar.gz
+#
+#    - name: untar redis
+#      command: tar zxf /tmp/redis-stable.tar.gz -C /tmp
+#
+#    - name: build redis
+#      command: make -C /tmp/redis-stable
+#
+#    - name: create redis group
+#      group: name=redis state=present system=yes
+#
+#    - name: create redis user
+#      user: name=redis group=redis createhome=no shell=/bin/false system=yes state=present
+#
+#    - name: make sure that /etc/redis exists
+#      file: path=/etc/redis state=directory mode=0755
+#
+#    - name: make sure that /var/db/redis exists
+#      file: path=/var/db/redis state=directory mode=0755 group=redis owner=redis
+#
+#    - name: make sure redis.log file exists
+#      copy: src=templates/redis.log dest=/var/log/redis.log owner=redis group=redis mode=0644
+#    
+#    - name: copy systemd file
+#      copy: src=templates/redis.service dest=/etc/systemd/system/redis.service
+#
+#    - name: copy redis.conf file
+#      copy: src=templates/redis.conf dest=/etc/redis/redis.conf group=redis owner=redis
+#
+#    - name: copy custom template
+#      template: src=templates/redis.local.conf.j2 dest=/etc/redis/redis.local.conf group=redis owner=redis
+#
+#    - name: copy redis-local script
+#      template: src=templates/redis-local.j2 dest=/usr/local/bin/redis-local mode=0755
+#
+#    - name: installing redis binaries
+#      command: cp /tmp/redis-stable/src/{{ item }} /usr/local/bin
+#      with_items: 
+#        - redis-server
+#        - redis-cli
+#        - redis-check-aof
+#
+#    - name: cleaning up build files
+#      command: rm -rf /tmp/{{ item }}
+#      with_items:
+#        - redis-stable
+#        - redis-stable.tar.gz
+#
+#    - name: ensure redis service is restarted
+#      service: name=redis state=restarted
+
+# Install postgresql
+#    - name: "Install packages"
+#      apt: "name={{ item }} state=present"
+#      with_items:
+#        - postgresql
+#
+#    - name: install pip
+#      apt:
+#        name: python3-pip
+#        state: present
+#
+#    - name: "Install Python pacckages"
+#      shell: "pip3 install psycopg2-binary --break-system-packages"
+# 
+#    - name: "Start and enable services"
+#      service: "name={{ item }} state=started enabled=yes"
+#      with_items:
+#        - postgresql
+#
+#    - name: "Create app database"
+#      postgresql_db:
+#        state: present
+#        name: "{{ db_name }}"
+#      become: true
+#      become_user: postgres
+#
+#    - name: "Create db user"
+#      postgresql_user:
+#        state: present
+#        name: "{{ username }}"
+#        password: "{{ password }}"
+#        role_attr_flags: "SUPERUSER" 
+#      become_user: postgres
+#
+#    - name: "Grant db user access to app db"
+#      postgresql_privs:
+#        type: database
+#        database: "{{ db_name }}"
+#        roles: "{{ username }}"
+#        grant_option: no
+#        privs: all
+#      become_user: postgres
+#
+#    - name: "Allow md5 connection for the db user"
+#      become_user: postgres
+#      postgresql_pg_hba:
+#        dest: "/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
+#        contype: host
+#        source: 0.0.0.0/0  
+#        databases: all
+#        method: md5
+#        users: "{{ username }}"
+#        create: true
+#      notify: restart postgres
+# 
+#  handlers:
+#    - name: restart postgres
+#      service: name=postgresql state=restarted
+
+# Install mysql
+#    - name: install mysql 
+#      apt: "name=mysql-server state=present"
+#    
+#    - name: start up the mysql service
+#      shell: "systemctl start mysql"
+#
+#    - name: Make sure pymysql is present
+#      shell: "pip3 install pymysql --break-system-packages" 
+#
+#    - name: Create backup user with all privileges
+#      mysql_user:
+#        name: "{{ username }}"
+#        password: "{{ password }}"
+#        host: "%"
+#        priv: "*.*:ALL,GRANT"
+#        state: present
+#        login_user: root
+#        login_password: "{{ password }}"
+#    
+#    - name: create a new database
+#      mysql_db:
+#        name: testdb
+#        state: present
+#        login_user: "{{ username }}"
+#        login_password: "{{ password }}"
+
+
+
+

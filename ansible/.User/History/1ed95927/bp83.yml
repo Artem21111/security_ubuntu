@@ -1,0 +1,52 @@
+---
+
+# Install s3cmd 
+- name: Install s3cmd
+  ansible.builtin.apt:
+    name:
+      - s3cmd
+    state: present
+
+# Download configure for s3cmd from tamplates
+- name: Configure s3cmd
+  template:
+    src:                                .s3cfg.j2
+    dest:                               "{{ path_for_s3cmd_config }}/.s3cfg"
+
+# Copy script from "files" to host
+- name: Copy backup script
+  copy:
+    src:                                backup_database.sh
+    dest:                               "{{ path_for_backup_script }}"
+
+# Become script to execution rights
+- name: Chmod backup
+  ansible.builtin.file:
+    path:                               "{{ path_for_backup_script }}backup_database.sh"
+    mode:                               '700'
+
+# Start cron task for one database
+- name: Start cron digital_ocean
+  cron:
+    name:                               backup_database
+    minute:                             "{{ cron_minute }}"
+#   hour:                               "{{ cron_hour }}"
+    job:                                "{{ path_for_backup_script }}backup_database.sh -s {{ app_name }} -q {{ db_type }} -p {{ backup_path }} --password {{ password }} --username {{ username }} -n {{ digitalocean_bucket_name }} -d {{ how_match_backup_save }}"
+
+
+
+
+
+#copy:
+#    dest:                              "{{ machine_path }}/.s3cfg"
+#    content: |
+#      [default]
+#          access_key =                 "{{ digitalocean_access_key }}"
+#          secret_key =                 "{{ digitalocean_secret_key }}"
+#          host_base =                  "{{ digitalocean_host_base }}"
+#          host_bucket =                "%(bucket)s.{{ digitalocean_host_bucket }}"
+#          use_https =                  True
+#          region =                     "{{ digitalocean_region }}"
+#          signature_v2 =               False
+#          multipart_chunk_size_mb =    15
+#          check_ssl_certificate =      False

@@ -1,0 +1,30 @@
+- name: "Make sure work directory is exists"
+  file:                             
+    path:                        /{{ data_path }}/
+    state:                       directory 
+    owner:                       root 
+    group:                       root 
+    mode:                        0777 
+  when:                          data_path is defined
+
+- name: check postgresql data
+  stat:
+    path:                        /var/lib/postgresql
+  register:                      postgresql_dir
+  when:                          data_path is defined
+  
+- name: move postgresql data
+  command:                        mv /var/lib/postgresql /{{ data_path }}/
+  when:                          
+    - data_path is defined
+    - postgresql_dir.stat.exists
+    - postgresql_dir.stat.isdir
+
+
+- name: Change work directory
+  ansible.builtin.lineinfile:
+    path:                       /etc/postgresql/{{ postgresql_version }}/main/postgresql.conf
+    regexp:                     "^data_directory *= *'/var/lib/postgresql/{{ postgresql_version }}/main'"
+    line:                       "data_directory = '/{{ data_path }}/postgresql/{{ postgresql_version }}/main'"
+  notify: restart postgresql
+  when:                         data_path is defined
