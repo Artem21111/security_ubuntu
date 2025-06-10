@@ -1,10 +1,10 @@
 ---
 
 # Variables for ssh
-ssh_port:               "7777"
+ssh_port:               "99"
 local_user:             "artembaidikov"
 users_path:             "Users"
-path_to_inventory:      "Users/artembaidikov/Downloads/security_ubntu"
+path_to_inventory:      "Users/artembaidikov/work/security_ubntu_two/inventoryhosts.yml/"
 
 # Variables for user config
 vars_for_config_user:

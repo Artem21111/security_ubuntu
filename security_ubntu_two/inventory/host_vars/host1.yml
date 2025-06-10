@@ -2,4 +2,4 @@
 
 ansible_connection:                                         ssh
 ansible_ssh_user:                                           ubuntu
-ansible_ssh_private_key_file:                               /Users/artembaidikov/Downloads/security_ubntu/files/security_test.pem
+ansible_ssh_private_key_file:                               /Users/artembaidikov/work/security_ubntu_two/files/security_test.pem

@@ -104,6 +104,7 @@
       notify:
         - restart ssh
         - add port to inventory file
+        - restart systemd ssh
       when:                                   
         - nmap_result is search('open') 
         - kill_result.rc == 0
@@ -191,6 +192,11 @@
     - name: restart ssh
       service:
         name:                                 ssh
+        state:                                restarted
+
+    - name: restart systemd ssh
+      service:
+        name:                                 daemon-reload
         state:                                restarted
 
     - name: add port to inventory file
