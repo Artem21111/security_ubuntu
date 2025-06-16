@@ -17,7 +17,8 @@
                                               'iptables',
                                               'policycoreutils',
                                               'selinux-utils',
-                                              'selinux-basics'
+                                              'selinux-basics',
+                                              'ipset'
                                               ]
         state:                                present
 
@@ -85,16 +86,31 @@
         msg:                                  "This port is already used!"
       when:                                   nc_job_status is search('in use')
 
-    - name: nmap try this port 
-      delegate_to:                            localhost
-      command:                                nmap {{ ansible_host }} -p {{ ssh_port }}
-      register:                               nmap_result
-      when:                                   nc_job_status.started == 1
+#    - name: nmap try this port 
+#      delegate_to:                            localhost
+#      command:                                nmap {{ ansible_host }} -p {{ ssh_port }}
+#      register:                               nmap_result
+#      when:                                   nc_job_status.started == 1
 
-    - name: kill nc proccess
-      command:                                pkill -f "nc -lv {{ ssh_port }}"
-      when:                                   nc_job_status.finished == 0
-      register:                               kill_result
+    - name: try connect to port
+      wait_for:
+        host:                                 "{{ ansible_host }}"
+        port:                                 "{{ ssh_port }}"
+        timeout:                              10
+        state:                                started
+      register:                               try_connect
+      ignore_errors: true
+
+    - name: Debug wait_for result
+      debug:
+        msg:                                  "Port is block by firewall!"
+      when:                                   try_connect.failed == true
+
+#    - name: kill nc proccess
+#      command:                                pkill -f "nc -lv {{ ssh_port }}"
+#      when:                                   nc_job_status.finished == 0
+#      register:                               kill_result
+#      ignore_errors: true
 
 # Configure ssh
     - name: configure sshd file
@@ -102,12 +118,14 @@
         src:                                  sshd_config.j2
         dest:                                 /etc/ssh/sshd_config
       notify:
+        - restart daemon-reload
         - restart ssh
         - add port to inventory file
-        - restart systemd ssh
-      when:                                   
-        - nmap_result is search('open') 
-        - kill_result.rc == 0
+      when:                       
+        - try_connect.failed == false            
+#        - nmap_result is search('open') 
+#        - kill_result.rc == 0
+      register:                               changed_ssh_port
 
 # Install and configure fail2ban
     - name: Restart sshd service to apply changes  
@@ -115,8 +133,9 @@
         name:                                 ssh    
         state:                                restarted
       when:                                   
-        - nmap_result is search('open') 
-        - kill_result.rc == 0
+#        - nmap_result is search('open') 
+#        - kill_result.rc == 0
+         - try_connect.failed == false
 
     - name: config fail2ban
       include_role:
@@ -143,14 +162,30 @@
     #     flush:                                yes
 
    # To Learn
-    - name: input only my ip
-      ansible.builtin.iptables:
-        chain:                                INPUT
-        protocol:                             tcp
-        source:                               "{{ item.address }}"
-        destination_port:                     "{{ ssh_port }}"
-        jump:                                 ACCEPT
-      loop: "{{ ip_connect }}"
+    - name: send ipset file
+      copy:
+        src:                                    whitelist.ipset
+        dest:                                   /tmp/whitelist.ipset
+        mode:                                   '0644'
+      register:                                 changed_ipadress
+
+    - name: create ipset on host
+      shell:                                    ipset restore < /tmp/whitelist.ipset
+      when:                                     changed_ipadress.changed == true
+
+    - name: input only ip from whitelist
+      command:                                  iptables -I INPUT -p tcp --dport {{ ssh_port }} -m set --match-set whitelist src -j ACCEPT
+      when:                                     changed_ssh_port.changed == true or changed_ipadress.changed == true
+      notify:                                   drop old rule
+
+#    - name: input only my ip
+#      ansible.builtin.iptables:
+#        chain:                                INPUT
+#        protocol:                             tcp
+#        source:                               "{{ item.address }}"
+#        destination_port:                     "{{ ssh_port }}"
+#        jump:                                 ACCEPT
+#      loop: "{{ ip_connect }}"
          
     - name: block other ip
       ansible.builtin.iptables:
@@ -165,16 +200,16 @@
         protocol:                             icmp
         jump:                                 DROP
 
-    - name: delete old rule for ssh
-      ansible.builtin.iptables:
-        chain:                                INPUT
-        protocol:                             tcp
-        source:                               "{{ item.address }}"
-        destination_port:                     "{{ find_port | first }}"
-        jump:                                 ACCEPT
-        state:                                absent
-      loop:                                   "{{ ip_connect }}"
-      when:                                   (find_port | first) != ssh_port
+#    - name: delete old rule for ssh
+#     ansible.builtin.iptables:
+#        chain:                                INPUT
+#        protocol:                             tcp
+#        source:                               "{{ item.address }}"
+#        destination_port:                     "{{ find_port | first }}"
+#        jump:                                 ACCEPT
+#        state:                                absent
+#      loop:                                   "{{ ip_connect }}"
+#      when:                                   (find_port | first) != ssh_port
 
 
 # Install and config selinux
@@ -189,15 +224,8 @@
 #        msg: "Rebooting machine in 5 seconds"
 
   handlers:
-    - name: restart ssh
-      service:
-        name:                                 ssh
-        state:                                restarted
-
-    - name: restart systemd ssh
-      service:
-        name:                                 daemon-reload
-        state:                                restarted
+    - name: restart daemon-reload
+      command:                                systemctl daemon-reload
 
     - name: add port to inventory file
       delegate_to:                            localhost
@@ -207,3 +235,15 @@
         line:                                 '\1ansible_ssh_port: {{ ssh_port }}'
         backrefs:                             yes
         state:                                present
+
+    - name: restart ssh
+      service:
+        name:                                 ssh
+        state:                                restarted
+
+    - name: drop old rule
+      command:                                iptables -D INPUT -p tcp --dport {{ find_port | first }} -m set --match-set whitelist src -j ACCEPT
+      when:                                   (find_port | first) != ssh_port
+
+# ipset сделать списки переменіх беліх листов для iptables
+# ipset вместо файла айпи адрес в инвентарном файле, перенос их в перменую ( греп ), перменую списком в whitelist при вызове iptables
