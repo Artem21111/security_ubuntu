@@ -1,0 +1,78 @@
+---
+
+# Variables for ssh
+ssh_port:               "22"
+local_user:             "artembaidikov"
+users_path:             "Users"
+path_to_inventory:      "Users/artembaidikov/work/security_ubntu_two"
+
+# Variables for user config
+vars_for_config_user:
+  - { name: "artembaidikov",
+      groups: "sudo",
+      shell: "/bin/bash",
+      password: "$6$rounds=656000$mysecretsalt$cNFVxXWfcxPgBi0FdmTj86YeCpclEj.iBRpkPG2L8x/MAWX2mezG7D36yDskUsNh3/qBjeHJMS.gUctO6H5Td."
+      } 
+  - { name: "tralala", 
+      groups: "artembaidikov",
+      shell: "/bin/bash", 
+      password: "$6$rounds=656000$mysecretsalt$cNFVxXWfcxPgBi0FdmTj86YeCpclEj.iBRpkPG2L8x/MAWX2mezG7D36yDskUsNh3/qBjeHJMS.gUctO6H5Td." }
+  - { name: "tututu", 
+      groups: "tralala", 
+      shell: "/bin/zsh", 
+      password: "$6$rounds=656000$mysecretsalt$cNFVxXWfcxPgBi0FdmTj86YeCpclEj.iBRpkPG2L8x/MAWX2mezG7D36yDskUsNh3/qBjeHJMS.gUctO6H5Td." }
+
+# Variables for fail2ban conf
+path_for_logs:          "/var/log/auth.log"
+max_trys:               "3"
+ban_time:               "60"
+
+# Variables for crypt
+passphrase_for_crypt:   "home"
+user_for_crypt:         "tralala"
+
+# Variable for iptables
+#ip_connect:
+#  - { address: "46.133.168.40" }
+#  - { address: "217.77.221.128" }
+#  - { address: "185.159.162.243"}
+
+#firewall_status: {
+#  tcp: {
+#      hosts: [
+#        1.2.3.4:5544
+#      ]
+#  },
+#
+#  http: {
+#      hosts: [
+#        1.2.3.4:5544,
+#        2.3.3.4:8080,
+#      ]
+#  },
+
+
+#firewall_status:
+#    tcp:
+#      hosts_for_firewall:
+#        [ 
+#          46.133.168.40,
+#          217.77.221.128,
+#          185.159.162.243 
+#       ]
+#      ports_for_firewall:
+#        [ 
+#          2020,
+#          22,
+#          80
+#        ]
+    #http:
+    #  hosts_for_firewall:
+    #    [ 127.0.0.1 ]
+    #  ports_for_firewall:
+    #    [ 80 ]
+
+
+
+
+
