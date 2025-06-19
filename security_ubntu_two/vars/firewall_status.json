@@ -1,0 +1,44 @@
+{ 
+    "firewall_status": {
+        "allow": {
+            "hosts_for_firewall": [
+                {
+                    "name": "ssh",
+                    "ip_address": "217.77.221.128",
+                    "protocol": "tcp",
+                    "chain": "INPUT",
+                    "rule": "ACCEPT",
+                    "port": "22", 
+                    "description": "ofice ip connect to ssh port"
+                },
+                {
+                    "name": "ssh",
+                    "ip_address": "27.27.27.29",
+                    "protocol": "tcp",
+                    "chain": "INPUT",
+                    "rule": "ACCEPT",
+                    "port": "2020",
+                    "description": "ofice ip connect to ssh port"
+                },
+                {
+                    "name": "ssh",
+                    "ip_address": "217.77.221.128",
+                    "protocol": "udp",
+                    "chain": "INPUT",
+                    "rule": "ACCEPT",
+                    "port": "90",
+                    "description":"ofice ip connect to port 89"
+                },
+                {
+                    "name": "http",
+                    "ip_address": "1.1.1.1",
+                    "chain": "INPUT",
+                    "rule": "ACCEPT",
+                    "protocol": "tcp",
+                    "port": "80",
+                    "description": "ofice ip connect to http"
+                }
+            ]
+        }
+    }
+}

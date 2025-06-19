@@ -1,11 +1,17 @@
+# Configuration Ubuntu OS for security. Using config users, ssh keys, fail2ban, iptables with ipset.
+# And configure ssh services ports.
+
 --- 
 - hosts: web_servers
   become: true
   vars_files:                                
     - ./vars/variables.yml
+    - ./vars/firewall_status.json
 
   tasks:
+
 # Install all programs and utils
+
     - name: Update_apt_cache  
       ansible.builtin.apt:    
         update_cache:                         yes
@@ -23,6 +29,7 @@
         state:                                present
 
 # Setup users
+
     - name: password for default user
       user:
         name:                                 "{{ item.name }}"  
@@ -50,6 +57,7 @@
       loop:                                   "{{ vars_for_config_user }}"
 
 # Check actuali ssh port
+
     - name: check ssh port
       slurp:
         src:                                  /etc/ssh/sshd_config
@@ -68,51 +76,18 @@
       debug:
         msg:                                  "{{ find_port }}"
 
-# Check ssh port before change
-    - name:                                   Start nc server on port
-      command:                                nc -lv {{ ssh_port }} 
-      register:                               check_port_change
-      async:                                  90
-      poll:                                   0
-
-    - name: check nc job
-      async_status:
-        jid:                                  "{{ check_port_change.ansible_job_id }}"
-      register:                               nc_job_status
-      ignore_errors:                          true
+    - name: check port
+      command: netstat -tulnp
+      register: check_port_status
 
     - name: message if port is already used 
       debug:
         msg:                                  "This port is already used!"
-      when:                                   nc_job_status is search('in use')
-
-#    - name: nmap try this port 
-#      delegate_to:                            localhost
-#      command:                                nmap {{ ansible_host }} -p {{ ssh_port }}
-#      register:                               nmap_result
-#      when:                                   nc_job_status.started == 1
-
-    - name: try connect to port
-      wait_for:
-        host:                                 "{{ ansible_host }}"
-        port:                                 "{{ ssh_port }}"
-        timeout:                              10
-        state:                                started
-      register:                               try_connect
-      ignore_errors: true
-
-    - name: Debug wait_for result
-      debug:
-        msg:                                  "Port is block by firewall!"
-      when:                                   try_connect.failed == true
-
-#    - name: kill nc proccess
-#      command:                                pkill -f "nc -lv {{ ssh_port }}"
-#      when:                                   nc_job_status.finished == 0
-#      register:                               kill_result
-#      ignore_errors: true
+      #when:                                   nc_job_status is search('in use')
+      when: check_port_status is search('{{ ssh_port }}')
 
 # Configure ssh
+
     - name: configure sshd file
       template:
         src:                                  sshd_config.j2
@@ -122,128 +97,321 @@
         - restart ssh
         - add port to inventory file
       when:                       
-        - try_connect.failed == false            
-#        - nmap_result is search('open') 
-#        - kill_result.rc == 0
+       # - try_connect.failed == false
+         - check_port_status is not search('{{ ssh_port }}')            
       register:                               changed_ssh_port
 
 # Install and configure fail2ban
+
     - name: Restart sshd service to apply changes  
       ansible.builtin.systemd:    
         name:                                 ssh    
         state:                                restarted
       when:                                   
-#        - nmap_result is search('open') 
-#        - kill_result.rc == 0
-         - try_connect.failed == false
+        # - try_connect.failed == false
+          - check_port_status is not search('{{ ssh_port }}')  
 
     - name: config fail2ban
       include_role:
-        name:                                 Oefenweb.fail2ban 
+        name:                                  Oefenweb.fail2ban 
       vars:
         fail2ban_services:
-          - name:                             sshd
-            port:                             "{{ ssh_port }}"
-            logpath:                          "{{ path_for_logs }}"
-            maxretry:                         "{{ max_trys }}"
-            bantime:                          "{{ ban_time }}"
+          - name:                              sshd
+            port:                              "{{ ssh_port }}"
+            logpath:                           "{{ path_for_logs }}"
+            maxretry:                          "{{ max_trys }}"
+            bantime:                           "{{ ban_time }}"
 
     - name: Start and autostart fail2ban  
       ansible.builtin.service:    
-        name:                                 fail2ban    
-        state:                                restarted    
-        enabled:                              true
-        
- # Install and config iptables
-    
-    # - name: delete older config
-    #   ansible.builtin.iptables:
-    #     chain:                                INPUT
-    #     flush:                                yes
+        name:                                  fail2ban    
+        state:                                 restarted    
+        enabled:                               true
 
-   # To Learn
-    - name: send ipset file
-      copy:
-        src:                                    whitelist.ipset
-        dest:                                   /tmp/whitelist.ipset
-        mode:                                   '0644'
-      register:                                 changed_ipadress
+# Configure ipset
 
-    - name: create ipset on host
-      shell:                                    ipset restore < /tmp/whitelist.ipset
-      when:                                     changed_ipadress.changed == true
+    - name: check list
+      command:                                 ipset list
+      register:                                check_list
 
-    - name: input only ip from whitelist
-      command:                                  iptables -I INPUT -p tcp --dport {{ ssh_port }} -m set --match-set whitelist src -j ACCEPT
-      when:                                     changed_ssh_port.changed == true or changed_ipadress.changed == true
-      notify:                                   drop old rule
+    - name: create whitelist
+      command:                                 ipset create whitelist hash:net 
+      when:                                    check_list is not search('whitelist')
 
-#    - name: input only my ip
-#      ansible.builtin.iptables:
-#        chain:                                INPUT
-#        protocol:                             tcp
-#        source:                               "{{ item.address }}"
-#        destination_port:                     "{{ ssh_port }}"
-#        jump:                                 ACCEPT
-#      loop: "{{ ip_connect }}"
-         
-    - name: block other ip
+    - name: check ip addresses from inventory file
+      delegate_to:                             localhost
+      slurp:
+        src:                                   /{{ path_to_inventory }}/inventory/hosts.yml
+      register:                                ip_content
+
+    - name: decode inventory file
+      set_fact:
+        decoded_ip_content:                    "{{ ip_content['content'] | b64decode }}"
+
+    - name: find all ipv4 addresses
+      set_fact:
+        find_ip_addresses:                      "{{ decoded_ip_content | regex_findall('\\b(\\d{1,3}(?:\\.\\d{1,3}){3})\\b') }}"
+      when:                                     decoded_ip_content is search('.')
+
+    - name: create one list with new ip adress
+      set_fact:
+        united_list:                              "{{ find_ip_addresses + (firewall_status | community.general.json_query('allow.hosts_for_firewall[*].ip_address')) }}"
+
+    - name: add ip addreess to white list from inventory and json files
+      command:                                    ipset add whitelist {{ item }}
+      loop:                                       "{{ united_list }}"
+      ignore_errors:                              true
+      register:                                   check_ip_in_whitelist_add
+
+    - name: message if ip adress is already added
+      debug:
+        msg:                                    "Your ip is already added!"
+      when:                                     check_ip_in_whitelist_add is search('already added')
+
+    # Delete old ipset ip addresses
+
+    - name: get ipset list
+      set_fact:
+        ip_set_list:                            "{{ check_list | regex_findall('\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b') }}"
+      when:                                     check_list is search('whitelist')
+
+    - name: comparison ipset lists
+      set_fact:
+        ip_list_delate:                        "{{ ip_set_list | difference(united_list | unique) }}"
+      when:                                     check_list is search('whitelist')
+
+    - name: delate ip set ipaddress
+      command:                                  ipset del whitelist {{ item }}
+      loop:                                     "{{ ip_list_delate }}"
+      when:                                     check_ip_in_whitelist_add is search('already added') or check_ip_in_whitelist_add.failed == false
+      ignore_errors:                            true
+      register:                                 check_delete_old_ip_address
+
+    - name: message if delete not
+      debug:
+        msg:                                    "Cannot delete, not added!"
+      when:                                     check_delete_old_ip_address is search('not added')
+
+# Configure iptables
+
+    - name: Setup ipset tables INPUT SSH 
       ansible.builtin.iptables:
-        chain:                                INPUT
-        protocol:                             tcp
-        destination_port:                     "{{ ssh_port }}"
-        jump:                                 DROP
+        comment:                                "{{ item.description }}"
+        chain:                                  "{{ item.chain }}"
+        match:                                  set
+        match_set:                              whitelist 
+        match_set_flags:                        src
+        jump:                                   "{{ item.rule }}"
+        destination_port:                       "{{ item.port }}"
+        protocol:                               "{{ item.protocol }}"
+        state:                                  present
+      loop:                                     "{{ firewall_status | community.general.json_query(iptables_rule) }}"
+      vars:
+        iptables_rule:                          "allow.hosts_for_firewall[?name=='ssh']"
+
+    - name: Setup ipset tables INPUT HTTP 
+      ansible.builtin.iptables:
+        comment:                                "{{ item.description }}"
+        chain:                                  "{{ item.chain }}"
+        match:                                  set
+        match_set:                              whitelist 
+        match_set_flags:                        src
+        jump:                                   "{{ item.rule }}"
+        destination_port:                       "{{ item.port }}"
+        protocol:                               "{{ item.protocol }}"
+        state:                                  present
+      loop:                                     "{{ firewall_status | community.general.json_query(iptables_rule) }}"
+      vars:
+        iptables_rule:                          "allow.hosts_for_firewall[?name=='http']"
       
     - name: block icmp
       ansible.builtin.iptables:
-        chain:                                INPUT
-        protocol:                             icmp
-        jump:                                 DROP
-
-#    - name: delete old rule for ssh
-#     ansible.builtin.iptables:
-#        chain:                                INPUT
-#        protocol:                             tcp
-#        source:                               "{{ item.address }}"
-#        destination_port:                     "{{ find_port | first }}"
-#        jump:                                 ACCEPT
-#        state:                                absent
-#      loop:                                   "{{ ip_connect }}"
-#      when:                                   (find_port | first) != ssh_port
-
+        chain:                                  INPUT
+        protocol:                               icmp
+        jump:                                   DROP
 
 # Install and config selinux
+
     - name: configure selinux
       ansible.posix.selinux:
-        policy:                               default
-        state:                                permissive
-
-# Reboot OS to run config
-#    - name: reboot OS to run config
-#      ansible.builtin.reboot:
-#        msg: "Rebooting machine in 5 seconds"
+        policy:                                 default
+        state:                                  permissive
 
   handlers:
     - name: restart daemon-reload
-      command:                                systemctl daemon-reload
+      command:                                  systemctl daemon-reload
 
     - name: add port to inventory file
-      delegate_to:                            localhost
+      delegate_to:                              localhost
       lineinfile:
-        path:                                 "/{{ path_to_inventory }}/inventory/hosts.yml" 
-        regexp:                               '^(\s*)ansible_ssh_port:\s*\d+'
-        line:                                 '\1ansible_ssh_port: {{ ssh_port }}'
-        backrefs:                             yes
-        state:                                present
+        path:                                   "/{{ path_to_inventory }}/inventory/hosts.yml" 
+        regexp:                                 '^(\s*)ansible_ssh_port:\s*\d+'
+        line:                                   '\1ansible_ssh_port: {{ ssh_port }}'
+        backrefs:                               yes
+        state:                                  present
 
     - name: restart ssh
       service:
-        name:                                 ssh
-        state:                                restarted
+        name:                                   ssh
+        state:                                  restarted
 
-    - name: drop old rule
-      command:                                iptables -D INPUT -p tcp --dport {{ find_port | first }} -m set --match-set whitelist src -j ACCEPT
-      when:                                   (find_port | first) != ssh_port
 
-# ipset сделать списки переменіх беліх листов для iptables
-# ipset вместо файла айпи адрес в инвентарном файле, перенос их в перменую ( греп ), перменую списком в whitelist при вызове iptables
+
+
+
+# Списки переменых для iptables ip:port
+#firewall_status: { # Сделать iptables многофункциональным
+#  tcp: {
+#      hosts: [
+#        1.2.3.4:5544
+#      ]
+#  },
+#
+#  http: {
+#      hosts: [
+#        1.2.3.4:5544,
+#        2.3.3.4:8080,
+#      ]
+#  },
+#}
+
+#for name in firewall_status:
+#    for k,v in name.items():
+#        #k = tcp
+#        for i in v:
+#            add ip <ip>: <port>
+
+# Добавить описание 
+
+# Install and config iptables
+  #  - name: check ip addresses from inventory file
+  #    delegate_to:                             localhost
+  #    slurp:
+  #      src:                                   /{{ path_to_inventory }}/inventory/hosts.yml
+  #    register:                                ip_content
+
+  #  - name: decode inventory file
+  #    set_fact:
+  #      decoded_ip_content:                    "{{ ip_content['content'] | b64decode }}"
+
+  #  - name: find all IPv4 addresses
+  #    set_fact:
+  #      find_ip_addresses:                      "{{ decoded_ip_content | regex_findall('\\b(\\d{1,3}(?:\\.\\d{1,3}){3})\\b') }}"
+  #    when:                                     decoded_ip_content is search('.')
+  #    register:                                 changed_ipadress
+
+   # - name: add rule from whitelist
+   #   command:                                  ipset add whitelist {{ find_ip_addresses.tcp.hosts }}
+   #   loop:                                     "{{ firewall_status }}"
+   #   ignore_errors:                            true
+   #   register:                                 already_added
+
+    #- name: add rule from whitelist
+    #  command:                                  ipset add whitelist {{ find_ip_item }}
+    #  loop:                                     "{{ find_ip_addresses }}"
+    #  loop_control:
+    #    loop_var:                               find_ip_item
+    #  ignore_errors:                            true
+    #  register:                                 already_added
+
+      #  - name: try connect to port
+  #    wait_for:
+  #      host:                                 "{{ ansible_host }}"
+  #      port:                                 "{{ ssh_port }}"
+  #      timeout:                              10
+  #      state:                                started
+  #    register:                               try_connect
+  #    ignore_errors:                          true
+
+   #? - name: Debug wait_for result                                               ?
+   #?   debug:                                                                    ?
+   #?     msg:                                  "Port is block by firewall!"      ?
+   #?   when:                                   try_connect.failed == true        ?
+# Check ssh port before change TODO
+  #  - name:                                   Start nc server on port
+  #    command:                                nc -lv {{ ssh_port }} 
+  #    register:                               check_port_change
+  #    async:                                  90
+  #    poll:                                   0
+
+  #  - name: check nc job
+  #    async_status:
+  #      jid:                                  "{{ check_port_change.ansible_job_id }}"
+  #    register:                               nc_job_status
+  #    ignore_errors:                          true
+
+# Cnfigure ipset
+  #  - name: check ipset lists
+  #    command:                                  ipset list
+  #    register:                                 check_ipset_list
+
+  #  - name: check info ports before delete old rule
+  #    command:                                  iptables -L
+  #    register:                                 iptables_rules_info
+
+  #  - name: find ports
+  #    set_fact:
+  #      old_firewall_ports:                     "{{ old_f_p | from_yaml }}"
+  #    vars:
+  #      old_f_p:                                "{{ iptables_rules_info | regex_findall(':(\\S+?)(?=\\s)') }}"
+
+  #  - name: what ports must be delete
+  #    set_fact:
+  #      ports_must_be_delete:                   "{{ old_firewall_ports | difference([item.item3]) }}"
+  #    loop:                                     "{{ ip_list }}"
+
+  #  - name: add rule from whitelist
+  #    command:                                  ipset add whitelist {{ item.item2 }}
+  #    loop:                                     "{{ ip_list }}"
+  #    ignore_errors:                            true
+  #    register:                                 already_added
+
+  #  - name: message when ip is already added
+  #    debug:
+  #      msg:                                    "Your ip addresses is alredy added!"
+  #    when:                                     already_added is search('already added')
+
+ # Delete old ipset ip addresses
+
+#    - name: get ipset list
+#      set_fact:
+#        ip_set_list:                            "{{ check_list | regex_findall('\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b') }}"
+#      when:                                     check_list is search('whitelist')
+#
+#    - name: comparison ipset lists
+#      set_fact:
+#        ip_list_delate:                        "{{ ip_set_list | difference(firewall_status | community.general.json_query('allow.hosts_for_firewall[*].ip_address')) }}"
+#      when:                                     check_list is search('whitelist')
+
+#    - name: delate ip set ipaddress
+#      command:                                  ipset del whitelist {{ item }}
+#      loop:                                     "{{ ip_list_delate }}"
+#    - name: add ip from inventory to white list 
+#      command:                                  ipset add whitelist {{ item }}
+#      loop:                                     "{{ find_ip_addresses }}"
+#      ignore_errors: true
+#     register:                                 check_ip_in_whitelist_from_inventory
+
+#    - name: message if ip is already added
+#      debug: 
+#        msg:                                    "Your ip is already added!"
+#      when:                                     check_ip_in_whitelist_from_inventory is search('already added')
+
+#    - name: add ip from json 
+#      command:                                  ipset add whitelist {{ item }}
+#      loop:                                     "{{ firewall_status | community.general.json_query('allow.hosts_for_firewall[*].ip_address') }}"
+#      ignore_errors:                            true
+#      register:                                 check_ip_in_whitelist_from_json
+
+#    - name: comparison ipset lists
+#      set_fact:
+#        ip_list_delate:                        "{{ ip_set_list | difference(firewall_status | community.general.json_query('allow.hosts_for_firewall[*].ip_address')) }}"
+#      when:                                     check_list is search('whitelist')
+
+
+#        - check_ip_in_whitelist_from_json.rc == 0
+
+#    - name: drop old rule
+#      command:                                  iptables -D INPUT -p {{ item.item2 }} --dport {{ item.item1 }} -m set --match-set whitelist src -j ACCEPT
+    #  when:                                     (find_port | first) != ssh_port
+#      loop:                                     "{{ old_firewall_items }}"

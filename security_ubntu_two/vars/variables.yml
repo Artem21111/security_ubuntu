@@ -1,10 +1,10 @@
 ---
 
 # Variables for ssh
-ssh_port:               "34"
+ssh_port:               "22"
 local_user:             "artembaidikov"
 users_path:             "Users"
-path_to_inventory:      "Users/artembaidikov/work/security_ubntu_two/"
+path_to_inventory:      "Users/artembaidikov/work/security_ubntu_two"
 
 # Variables for user config
 vars_for_config_user:
@@ -32,7 +32,47 @@ passphrase_for_crypt:   "home"
 user_for_crypt:         "tralala"
 
 # Variable for iptables
-ip_connect:
-  - { address: "46.133.168.40" }
-  - { address: "217.77.221.128" }
-  - { address: "185.159.162.243"}
+#ip_connect:
+#  - { address: "46.133.168.40" }
+#  - { address: "217.77.221.128" }
+#  - { address: "185.159.162.243"}
+
+#firewall_status: {
+#  tcp: {
+#      hosts: [
+#        1.2.3.4:5544
+#      ]
+#  },
+#
+#  http: {
+#      hosts: [
+#        1.2.3.4:5544,
+#        2.3.3.4:8080,
+#      ]
+#  },
+
+
+#firewall_status:
+#    tcp:
+#      hosts_for_firewall:
+#        [ 
+#          46.133.168.40,
+#          217.77.221.128,
+#          185.159.162.243 
+#       ]
+#      ports_for_firewall:
+#        [ 
+#          2020,
+#          22,
+#          80
+#        ]
+    #http:
+    #  hosts_for_firewall:
+    #    [ 127.0.0.1 ]
+    #  ports_for_firewall:
+    #    [ 80 ]
+
+
+
+
+
