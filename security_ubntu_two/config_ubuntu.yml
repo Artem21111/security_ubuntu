@@ -2,6 +2,7 @@
 # And configure ssh services ports.
 # Test triger after hook control
 # bim bim bom bom
+# nakonesto
 
 --- 
 - hosts: web_servers
