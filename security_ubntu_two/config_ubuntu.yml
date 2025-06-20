@@ -1,5 +1,6 @@
 # Configuration Ubuntu OS for security. Using config users, ssh keys, fail2ban, iptables with ipset.
 # And configure ssh services ports.
+# Test triger
 
 --- 
 - hosts: web_servers
