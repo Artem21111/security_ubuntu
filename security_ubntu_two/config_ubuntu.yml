@@ -3,6 +3,7 @@
 # Test triger after hook control
 # bim bim bom bom
 # aaaaaaaaaa
+# blaaaaaa
 
 --- 
 - hosts: web_servers
