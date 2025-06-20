@@ -3,8 +3,8 @@
 # Variables for ssh
 ssh_port:               "22"
 local_user:             "artembaidikov"
-users_path:             "Users"
-path_to_inventory:      "Users/artembaidikov/work/security_ubntu_two"
+users_path:             "./files/"
+path_to_inventory:      "./inventory"
 
 # Variables for user config
 vars_for_config_user:
