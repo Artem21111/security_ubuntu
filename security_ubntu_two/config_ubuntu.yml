@@ -1,6 +1,7 @@
 # Configuration Ubuntu OS for security. Using config users, ssh keys, fail2ban, iptables with ipset.
 # And configure ssh services ports.
 # Test triger after hook control
+# bim bim bom bom
 
 --- 
 - hosts: web_servers
