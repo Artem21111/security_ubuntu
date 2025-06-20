@@ -49,7 +49,7 @@
 
     - name: add ssh key to server
       copy:
-        src:                                  "{{ users_path }}.ssh/id_ed25519.pub"
+        src:                                  "{{ users_path }}id_ed25519.pub"
         dest:                                 /home/{{ item.name }}/.ssh/authorized_keys
         owner:                                "{{ item.name }}"
         group:                                "{{ item.name }}"
